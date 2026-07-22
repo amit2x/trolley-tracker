@@ -1,22 +1,39 @@
-# Sensitive Environment Variables & Configs
+# Environment
 .env
 .env.*
-config.json
-secrets.py
+!.env.example
 
-# Python Environment & Build Caches
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
+*.pyo
+*.pyd
+
+# Virtual Environments
 venv/
 .venv/
 env/
 
-# Databases (Prevent committing local databases)
+# Databases
 *.db
 *.sqlite3
 
-# IDE / Operating System files
+# Streamlit
+.streamlit/
+
+# IDE
 .vscode/
+.idea/
+
+# Logs
+*.log
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
