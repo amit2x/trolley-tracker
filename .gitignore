@@ -1,0 +1,22 @@
+# Sensitive Environment Variables & Configs
+.env
+.env.*
+config.json
+secrets.py
+
+# Python Environment & Build Caches
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# Databases (Prevent committing local databases)
+*.db
+*.sqlite3
+
+# IDE / Operating System files
+.vscode/
+.DS_Store
+Thumbs.db
