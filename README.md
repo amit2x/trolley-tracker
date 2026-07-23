@@ -12,9 +12,6 @@
 
 </div>
 
-> [!NOTE]
-> This README is visually enhanced. The project content remains unchanged.
-
 ## 📚 Table of Contents
 
 - 🚀 What Is This Project?
