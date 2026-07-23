@@ -19,6 +19,7 @@
 - 📋 Prerequisites
 - ⚙️ Prerequisite Setup
 - 📁 What Each File Actually Does
+- 🔧 Flashing the ESP32 Firmware
 - 🔄 The Order Things Run In
 - 📡 How a Single Trolley Ping Flows Through the Whole System
 - 🛰️ Simulating a Trolley Without Real Hardware
@@ -63,13 +64,14 @@ Before touching any code, it helps to see the whole chain, start to
 finish:
 
 ```text
-   [ESP32 BLE Beacon on a trolley]
+   [ESP32/beacon/beacon.ino — BLE Beacon mounted on a trolley]
                 │
-                │  (broadcasts a signal)
+                │  (advertises its name over BLE, e.g. "ZONE_A_BEACON")
                 ▼
-   [ESP32 BLE Scanner nearby]
+   [ESP32/trolley/trolley.ino — BLE Scanner + WiFi/MQTT client]
                 │
-                │  (measures signal strength = RSSI, notes the zone)
+                │  (scans for known beacon names, keeps the strongest
+                │   RSSI match as the current zone, connects to WiFi)
                 ▼
    [Mosquitto MQTT Broker]
                 │
@@ -91,8 +93,9 @@ finish:
 ```
 
 Everything else in this project (`shared/config.py`, `shared/auth.py`,
-the scripts in `database/`) exists to **support** this chain — they set
-things up, maintain the database, or handle logins securely. None of
+the scripts in `database/`, and the firmware in `ESP32/`) exists to
+**support** this chain — they set things up, maintain the database,
+handle logins securely, or run on the physical hardware itself. None of
 them are the "main" program by themselves; they're the scaffolding that
 lets `backend.py` and `app.py` do their jobs correctly.
 
@@ -110,12 +113,15 @@ can build anything.
 | **Mosquitto MQTT broker** | The "mail sorting office" that passes beacon messages to `backend.py` | [mosquitto.org/download](https://mosquitto.org/download/) |
 | **Git** | To clone/manage this repository | [git-scm.com](https://git-scm.com/) |
 | **A code editor** (e.g. VS Code) | To view/edit the code comfortably | [code.visualstudio.com](https://code.visualstudio.com/) |
-| **ESP32 boards + BLE beacon firmware** | Only needed if you're running real hardware, not just testing the software | Outside the scope of this README |
+| **Arduino IDE or PlatformIO** | Only needed if you're flashing real ESP32 hardware, not just testing the software | [arduino.cc/en/software](https://www.arduino.cc/en/software) |
+| **ESP32 boards (2+)** | One acts as a beacon (`ESP32/beacon/beacon.ino`), one or more act as trolley scanners (`ESP32/trolley/trolley.ino`) | Only needed for real hardware |
+| **Arduino libraries: `NimBLE-Arduino`, `PubSubClient`, `ArduinoJson`** | Required by `trolley.ino` (BLE scanning, MQTT publishing, JSON payloads) and `beacon.ino` (BLE advertising) | Install via Library Manager in Arduino IDE, or `platformio.ini` if using PlatformIO |
 
 You do **not** need to own real ESP32 hardware to explore this project —
 you can simulate trolley pings by publishing fake MQTT messages
 yourself (shown further down), so the backend and dashboard both work
-without any physical device.
+without any physical device. The firmware in `ESP32/` is only needed if
+you want to test with real beacons and scanners.
 
 ---
 
@@ -211,6 +217,39 @@ Handles password security using bcrypt. It has two functions:
 An empty file that simply tells Python "treat this folder as an
 importable package." You'll never need to open or edit it.
 
+## 📁 `ESP32/` — the firmware that runs on the physical hardware
+
+Two separate sketches, each meant for a different physical device. They
+never run on the same board at the same time.
+
+**`ESP32/beacon/beacon.ino`**
+Flashed onto the small ESP32 that rides along on a trolley. It does
+almost nothing except constantly advertise its own name (e.g.
+`ZONE_A_BEACON`) over BLE — that name is how a scanner later identifies
+which zone a trolley is near. Change `BEACON_NAME` at the top of the
+file for each physical beacon you flash, then re-upload.
+
+**`ESP32/trolley/trolley.ino`**
+Flashed onto the ESP32 that acts as a zone scanner. On every loop it:
+1. Connects to WiFi and to the Mosquitto broker (reconnecting
+   automatically if either drops).
+2. Runs a 5-second BLE scan and compares every device name it sees
+   against the hardcoded `knownBeacons[]` list.
+3. Keeps whichever known beacon had the strongest RSSI as the current
+   `bestZone` / `bestRSSI`.
+4. Publishes `{"trolley_id": ..., "zone": ..., "rssi": ...}` as JSON to
+   the same MQTT topic `backend.py` is subscribed to.
+5. Waits 30 seconds, then repeats.
+
+**`ESP32/trolley/secrets.h`** *(not committed — see `.gitignore`)*
+Holds the real `WIFI_SSID`, `WIFI_PASS`, and `MQTT_BROKER` values for
+your network, so nothing sensitive is hardcoded in `trolley.ino` itself.
+
+**`ESP32/trolley/secrets.h.example`**
+The committed template for the file above. Copy it to `secrets.h` and
+fill in your real values before uploading `trolley.ino` — see
+[Flashing the ESP32 Firmware](#-flashing-the-esp32-firmware) below.
+
 ## 📁 `database/` — one-off setup & maintenance tools
 
 None of these run continuously — you run each one when you need it, and
@@ -255,6 +294,45 @@ truth is the same database file that `backend.py` writes into.
 
 ---
 
+# 🔧 Flashing the ESP32 Firmware
+
+Skip this whole section if you're only testing with simulated pings
+(see [Simulating a Trolley Without Real Hardware](#-simulating-a-trolley-without-real-hardware)).
+
+### 1. Set up `secrets.h` for the trolley scanner
+
+```bash
+cp ESP32/trolley/secrets.h.example ESP32/trolley/secrets.h
+```
+
+Open `ESP32/trolley/secrets.h` and fill in your real WiFi SSID/password
+and the IP address of the machine running Mosquitto. Like `.env`,
+`secrets.h` is git-ignored — only `secrets.h.example` is committed.
+
+### 2. Flash the beacon(s)
+
+Open `ESP32/beacon/beacon.ino` in the Arduino IDE, set `BEACON_NAME` to
+match one of the zone names used in `knownBeacons[]` inside
+`trolley.ino` (e.g. `ZONE_A_BEACON`), and upload it to the ESP32 you're
+attaching to a trolley. Repeat for each additional beacon/zone,
+changing `BEACON_NAME` each time.
+
+### 3. Flash the trolley scanner(s)
+
+Open `ESP32/trolley/trolley.ino`, set a unique `TROLLEY_ID` for this
+board (e.g. `T-001`), confirm `knownBeacons[]` lists every beacon name
+you flashed in step 2, then upload it.
+
+### 4. Power everything on in the right order
+
+Mosquitto and `backend.py` should already be running (see the next
+section) before you power on the trolley scanner — otherwise it will
+just retry the MQTT connection every 2 seconds until the broker is
+reachable. Beacons can be powered on at any time, since they only
+advertise and don't depend on WiFi or MQTT.
+
+---
+
 # 🔄 The Order Things Run In (Execution Hierarchy)
 
 Some scripts must run *before* others, or they'll fail. Here's the
@@ -281,6 +359,12 @@ STEP 2  (every time you want the system "live")
         │
         ▼
   streamlit run frontend/app.py (open this in your browser)
+        │
+        ▼
+  Power on beacon(s) and trolley scanner(s)   (optional — real hardware
+                                                only; see "Flashing the
+                                                ESP32 Firmware" if not
+                                                already flashed)
 
 STEP 3  (any time, optional, for checking things)
 ───────────────────────────────────────────────────
@@ -419,21 +503,28 @@ trolley_tracker/
 ├── .gitignore
 ├── requirements.txt
 ├── README.md
-├── shared/
-│   ├── config.py         # reads .env, exposes settings to every script
-│   ├── auth.py           # password hashing/verification helpers
-│   └── __init__.py
 ├── backend/
 │   └── backend.py        # MQTT listener → writes pings into SQLite
+├── database/
+│   ├── database.py       # creates trolley_tracking table + sample row
+│   ├── setup_users.py    # creates users/passengers tables + admin login
+│   ├── clear_old_data.py # wipes trolley_tracking
+│   ├── current_status.py # prints latest status per trolley
+│   ├── history_view.py   # prints last 1000 tracking records
+│   └── test.py           # prints the trolley_tracking table schema
+├── ESP32/
+│   ├── beacon/
+│   │   └── beacon.ino          # BLE beacon firmware (rides on the trolley)
+│   └── trolley/
+│       ├── secrets.h           # real WiFi/MQTT credentials (never committed)
+│       ├── secrets.h.example   # template for secrets.h (safe to commit)
+│       └── trolley.ino         # BLE scanner + WiFi/MQTT firmware
 ├── frontend/
 │   └── app.py            # Streamlit dashboard (staff + passenger login)
-└── database/
-    ├── database.py       # creates trolley_tracking table + sample row
-    ├── setup_users.py    # creates users/passengers tables + admin login
-    ├── clear_old_data.py # wipes trolley_tracking
-    ├── current_status.py # prints latest status per trolley
-    ├── history_view.py   # prints last 1000 tracking records
-    └── test.py           # prints the trolley_tracking table schema
+└── shared/
+    ├── config.py         # reads .env, exposes settings to every script
+    ├── auth.py           # password hashing/verification helpers
+    └── __init__.py
 ```
 
 **Why every script can import `shared/` no matter where it's run from:**
@@ -475,6 +566,15 @@ streamlit run frontend/app.py
 Otherwise, Streamlit just uses its own defaults (port `8501`, address
 `localhost`).
 
+**Note on the ESP32 firmware:** `beacon.ino` and `trolley.ino` don't
+read `.env` at all — they're separate C++ programs flashed directly
+onto hardware. Their settings (`BEACON_NAME`, `TROLLEY_ID`,
+`knownBeacons[]`, `MQTT_TOPIC`) are edited directly in the `.ino` files,
+and WiFi/broker credentials live in `secrets.h` instead. If you change
+`MQTT_TOPIC` in `.env`, update the matching `MQTT_TOPIC` constant in
+`trolley.ino` too, or the backend and the firmware will be talking past
+each other.
+
 ---
 
 # 🛡️ Security Notes
@@ -487,6 +587,12 @@ Otherwise, Streamlit just uses its own defaults (port `8501`, address
 - Your `.env` file is excluded from Git by `.gitignore`, so your real
   admin password and any local settings never get committed to the
   repository.
+- `ESP32/trolley/secrets.h` (your real WiFi SSID/password and Mosquitto
+  broker IP) is excluded from Git the same way — only
+  `secrets.h.example` is committed. If a `secrets.h` file with real
+  values ever ends up somewhere it shouldn't (committed, shared, or
+  uploaded anywhere outside your machine), treat those credentials as
+  compromised and rotate your WiFi password.
 - If you previously ran an older version of this project that stored
   plaintext passwords, delete `trolley.db` and re-run `database.py` +
   `setup_users.py` so your admin account gets recreated properly hashed.
@@ -502,6 +608,9 @@ Otherwise, Streamlit just uses its own defaults (port `8501`, address
 | Backend won't connect / hangs on startup | Mosquitto isn't running | Start `mosquitto` in its own terminal first |
 | Dashboard shows "No trolley data" | No pings have been received yet | Run the `mosquitto_pub` simulation command above, or connect real hardware |
 | Login fails even with correct default password | `setup_users.py` was never run, or ran against an old database with plaintext passwords | Delete `trolley.db` and re-run `database.py` then `setup_users.py` |
+| `trolley.ino` won't compile / missing `secrets.h` | You haven't copied the template yet | `cp ESP32/trolley/secrets.h.example ESP32/trolley/secrets.h` and fill in real values |
+| Trolley scanner never leaves "Connecting to WiFi" | Wrong `WIFI_SSID`/`WIFI_PASS` in `secrets.h`, or ESP32 out of router range | Double-check `secrets.h`, move the board closer to the router |
+| Scanner sees the beacon but zone stays `UNKNOWN` | `BEACON_NAME` on the beacon doesn't exactly match an entry in `trolley.ino`'s `knownBeacons[]` | Make sure the names match character-for-character (case-sensitive) |
 
 ---
 
