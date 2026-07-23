@@ -11,8 +11,8 @@
 // before uploading trolley.cpp to a device.
 // =====================================================
 
-const char* WIFI_SSID   = "";
-const char* WIFI_PASS   = "thebrocode";
-const char* MQTT_BROKER = "10.32.86.253";
+const char* WIFI_SSID   = "Galaxy A51 76DF";
+const char* WIFI_PASS   = "Hello.456";
+const char* MQTT_BROKER = "10.55.96.175";
 
 #endif
