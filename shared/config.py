@@ -32,7 +32,11 @@ MQTT_TOPIC = os.getenv("MQTT_TOPIC", "airport/trolleys")
 
 # --- Default admin account (used only to seed the users table) --------
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    raise RuntimeError(
+        "ADMIN_PASSWORD is not set. Copy .env.example to .env and set a real value."
+    )
 ADMIN_ROLE = os.getenv("ADMIN_ROLE", "admin")
 
 # --- Streamlit ------------------------------------------------------------
