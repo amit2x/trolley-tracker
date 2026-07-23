@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include "secrets.h"   // WIFI_SSID, WIFI_PASS, MQTT_BROKER — never committed, see secrets.h
 
 // Function prototypes (Arduino IDE auto-generates these; explicit here for plain C++ builds)
 void connectWiFi();
@@ -11,10 +12,9 @@ void scanBLE();
 void sendPing();
 
 // ─── CONFIGURE THESE ───────────────────────────
+// WIFI_SSID, WIFI_PASS, and MQTT_BROKER now live in secrets.h so that
+// real credentials are never hard-coded here or committed to Git.
 const char* TROLLEY_ID  = "T-001";
-const char* WIFI_SSID   = "Galaxy A51 76DF";
-const char* WIFI_PASS   = "Hello.456";
-const char* MQTT_BROKER = "10.55.96.175";
 const int   MQTT_PORT   = 1883;
 const char* MQTT_TOPIC  = "airport/trolleys";
 
