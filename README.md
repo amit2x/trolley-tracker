@@ -14,25 +14,25 @@
 
 ## 📚 Table of Contents
 
-- 🚀 What Is This Project?
-- 🏗️ The Big Picture — How Everything Connects
-- 📋 Prerequisites
-- ⚙️ Prerequisite Setup
-- 📁 What Each File Actually Does
-- 🔧 Flashing the ESP32 Firmware
-- 🔄 The Order Things Run In
-- 📡 How a Single Trolley Ping Flows Through the Whole System
-- 🛰️ Simulating a Trolley Without Real Hardware
-- 📶 RSSI → Status Logic
-- 🗄️ Database Schema
-- 🔐 Default Credentials
-- 📂 Project Folder Structure
-- ⚙️ Configuration Reference
-- 🛡️ Security Notes
-- 🛠️ Troubleshooting
-- 🚀 Future Improvements
-- 📖 Project Background
-- 📄 License
+- [🚀 What Is This Project?](#-what-is-this-project)
+- [🏗️ The Big Picture — How Everything Connects](#️-the-big-picture--how-everything-connects)
+- [📋 Prerequisites](#-prerequisites--what-you-need-before-you-start)
+- [⚙️ Prerequisite Setup](#️-prerequisite-setup--getting-your-machine-ready)
+- [📁 What Each File Actually Does](#-what-each-file-actually-does)
+- [🔧 Flashing the ESP32 Firmware](#-flashing-the-esp32-firmware)
+- [🔄 The Order Things Run In](#-the-order-things-run-in-execution-hierarchy)
+- [📡 How a Single Trolley Ping Flows Through the Whole System](#-how-a-single-trolley-ping-flows-through-the-whole-system)
+- [🛰️ Simulating a Trolley Without Real Hardware](#️-simulating-a-trolley-without-real-hardware)
+- [📶 RSSI → Status Logic](#-rssi--status-logic)
+- [🗄️ Database Schema](#️-database-schema--whats-actually-stored)
+- [🔐 Default Credentials](#-default-credentials-local-testing-only)
+- [📂 Project Folder Structure](#-project-folder-structure)
+- [⚙️ Configuration Reference](#️-configuration-reference)
+- [🛡️ Security Notes](#️-security-notes)
+- [🛠️ Troubleshooting](#️-troubleshooting-common-first-run-issues)
+- [🚀 Future Improvements](#-future-improvements)
+- [📖 Project Background](#-project-background)
+- [📄 License](#-license)
 
 ---
 
@@ -297,7 +297,7 @@ truth is the same database file that `backend.py` writes into.
 # 🔧 Flashing the ESP32 Firmware
 
 Skip this whole section if you're only testing with simulated pings
-(see [Simulating a Trolley Without Real Hardware](#-simulating-a-trolley-without-real-hardware)).
+(see [Simulating a Trolley Without Real Hardware](#️-simulating-a-trolley-without-real-hardware)).
 
 ### 1. Set up `secrets.h` for the trolley scanner
 
