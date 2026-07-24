@@ -599,49 +599,6 @@ each other.
 
 ---
 
-## 🔒 Optional: Restrict Database File Permissions
-
-By default, `trolley.db` uses whatever file permissions your OS gives
-new files (often readable by other accounts on the same machine). If
-you want to restrict it so only your own OS user account can open the
-file directly, run one of the following once after the database exists
-(pick the one matching your OS).
-
-**Linux / macOS:**
-```bash
-chmod 600 trolley.db
-```
-
-**Windows** (Command Prompt or PowerShell, run from the project root):
-```powershell
-icacls trolley.db /inheritance:r /grant:r "%USERNAME%:F"
-```
-This strips inherited permissions and grants full control only to your
-own Windows user account. Equivalent GUI route: right-click
-`trolley.db` → **Properties** → **Security** tab → **Edit** → remove
-other accounts/groups, leaving only your own account with access.
-
-**⚠️ Before you do this, understand what it changes (both OSes):**
-- Only the OS user account that owns the file (normally whichever
-  account first created it) will be able to read or write it
-  afterward — not other user accounts on the same machine, even ones
-  with access to this project's folder.
-- If you ever run any script (`backend.py`, `app.py`, the tools in
-  `database/`) as a **different** OS user/account than the one that
-  owns the file, that script will fail with a permissions error until
-  you either re-run it as the owning account, or hand ownership over
-  (`chown`/`sudo` on Linux/Mac, re-running `icacls` for the new account
-  on Windows).
-- This is **not permanent or self-enforcing** — it's a one-time manual
-  command. If a backup tool, a fresh `git clone`, or someone recreating
-  `trolley.db` resets the file's permissions, you'll need to run the
-  command again.
-- This still does **not** protect against root/admin access on the
-  machine, or against someone copying the raw file elsewhere (e.g. an
-  unencrypted backup) — see Future Improvements for encryption at rest
-  if that level of protection matters to you.
-
----
 
 # 🛠️ Troubleshooting Common First-Run Issues
 
