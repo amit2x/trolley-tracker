@@ -625,11 +625,8 @@ each other.
 - Cloud database integration
 - Dashboard analytics
 - Push notifications
-- Database encryption at rest (SQLCipher) — currently the database
-  is protected only by OS file permissions (owner-only read/write);
-  encrypting the file itself would add protection against the raw
-  file being copied or read outside the app, at the cost of managing
-  an encryption key that must never be lost
+- Database encryption at rest (SQLCipher) — encrypting the database file itself would add protection against the raw
+  file being copied or read outside the app, at the cost of managing an encryption key that must never be lost
 
 ---
 
