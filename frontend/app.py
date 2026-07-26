@@ -1,14 +1,14 @@
 # Updated Streamlit dashboard for single-history-table architecture
 import streamlit as st
-import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
 import sys
 import os
+from streamlit_autorefresh import st_autorefresh
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from shared.config import DB_NAME
 from shared.auth import verify_password
+from shared.db import get_connection
 
 st.set_page_config(page_title="Trolley Tracker", layout="wide")
 
@@ -18,7 +18,9 @@ if "logged_in" not in st.session_state:
     st.session_state.user_data=None
 
 def get_conn():
-    return sqlite3.connect(DB_NAME)
+    # get_connection() unlocks the encrypted trolley.db with
+    # DB_ENCRYPTION_KEY before returning — see shared/db.py
+    return get_connection()
 
 def get_current_trolleys():
     conn=get_conn()
@@ -75,9 +77,37 @@ def login_page():
                 st.rerun()
             else: st.error("Invalid credentials")
 
+def render_autorefresh_controls(key_prefix: str):
+    """
+    Non-blocking auto-refresh control, shared by both dashboards.
+
+    Unlike Project 0's `time.sleep(60); st.rerun()` — which freezes the
+    entire app for the full interval, so no button click or filter change
+    registers until the sleep finishes — st_autorefresh() runs a small
+    client-side JS timer that triggers a rerun on its own schedule without
+    blocking the Python thread. The page stays fully interactive the
+    whole time; the person can still click Refresh, change the zone
+    filter, or log out at any moment.
+    """
+    c1, c2 = st.columns([1, 3])
+    with c1:
+        auto_on = st.toggle("Auto-refresh", value=True, key=f"{key_prefix}_auto_on")
+    with c2:
+        interval = st.selectbox(
+            "Every",
+            options=[10, 30, 60, 120],
+            format_func=lambda s: f"{s} seconds",
+            index=1,
+            key=f"{key_prefix}_interval",
+            disabled=not auto_on,
+        )
+    if auto_on:
+        st_autorefresh(interval=interval * 1000, key=f"{key_prefix}_autorefresh_tick")
+
 def admin_dashboard():
     st.title("Staff Dashboard")
     st.write(f"Logged in as **{st.session_state.user_data['username']}** ({st.session_state.role})")
+    render_autorefresh_controls("admin")
     c1,c2=st.columns(2)
     with c1:
         if st.button("Refresh"): st.rerun()
@@ -98,11 +128,13 @@ def admin_dashboard():
     m3.metric("Weak",(df.status=="WEAK_SIGNAL").sum())
     m4.metric("Offline",(df.status=="OFFLINE").sum())
     st.dataframe(df,use_container_width=True)
+    st.caption(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
 
 def passenger_dashboard():
     d=st.session_state.user_data
     st.title("Passenger Portal")
     st.write(f"Welcome **{d['name']}**")
+    render_autorefresh_controls("passenger")
     c1,c2,c3=st.columns(3)
     c1.metric("Flight",d["flight_number"]);c2.metric("Time",d["scheduled_time"]);c3.metric("Gate",d["gate"])
     if st.button("Logout"):
@@ -118,6 +150,7 @@ def passenger_dashboard():
         st.warning("No active trolleys available.")
     else:
         st.dataframe(avail[["trolley_id","zone","status","timestamp"]],use_container_width=True)
+    st.caption(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
 
 if not st.session_state.logged_in:
     login_page()
