@@ -66,25 +66,39 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 
 def on_message(client, userdata, msg):
-    raw = msg.payload.decode()
-    data = json.loads(raw)
+    # Wrapped in try/except so one malformed or unexpected message
+    # (e.g. bad JSON from a manual mosquitto_pub test, a flaky device,
+    # or buggy firmware) gets logged and skipped instead of crashing
+    # the entire backend process — without this, a single bad message
+    # would take down data collection for every trolley until the
+    # script is manually restarted.
+    try:
+        raw = msg.payload.decode()
+        data = json.loads(raw)
 
-    trolley_id = data["trolley_id"]
-    zone = data["zone"]
-    rssi = data["rssi"]
+        trolley_id = data["trolley_id"]
+        zone = data["zone"]
+        rssi = data["rssi"]
 
-    status = determine_status(rssi)
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        status = determine_status(rssi)
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    cursor.execute("""
-        INSERT INTO trolley_tracking
-        (trolley_id, zone, rssi, status, timestamp)
-        VALUES (?, ?, ?, ?, ?)
-    """, (trolley_id, zone, rssi, status, timestamp))
+        cursor.execute("""
+            INSERT INTO trolley_tracking
+            (trolley_id, zone, rssi, status, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        """, (trolley_id, zone, rssi, status, timestamp))
 
-    conn.commit()
+        conn.commit()
 
-    print(f"Inserted : {trolley_id} | {zone} | {rssi} | {status} | {timestamp}")
+        print(f"Inserted : {trolley_id} | {zone} | {rssi} | {status} | {timestamp}")
+
+    except json.JSONDecodeError:
+        print(f"Ignored malformed message (not valid JSON): {msg.payload!r}")
+    except KeyError as e:
+        print(f"Ignored message missing required field {e}: {msg.payload!r}")
+    except Exception as e:
+        print(f"Unexpected error handling message, skipping: {e}")
 
 
 # MQTT setup
