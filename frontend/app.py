@@ -1,5 +1,6 @@
 # Updated Streamlit dashboard for single-history-table architecture
 import streamlit as st
+import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
 import sys
@@ -7,8 +8,8 @@ import os
 from streamlit_autorefresh import st_autorefresh
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from shared.config import DB_NAME
 from shared.auth import verify_password
-from shared.db import get_connection
 
 st.set_page_config(page_title="Trolley Tracker", layout="wide")
 
@@ -18,9 +19,7 @@ if "logged_in" not in st.session_state:
     st.session_state.user_data=None
 
 def get_conn():
-    # get_connection() unlocks the encrypted trolley.db with
-    # DB_ENCRYPTION_KEY before returning — see shared/db.py
-    return get_connection()
+    return sqlite3.connect(DB_NAME)
 
 def get_current_trolleys():
     conn=get_conn()
