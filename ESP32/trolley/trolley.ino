@@ -4,12 +4,6 @@
 #include <ArduinoJson.h>
 #include "secrets.h"   // WIFI_SSID, WIFI_PASS, MQTT_BROKER — never committed, see secrets.h
 
-// Function prototypes (Arduino IDE auto-generates these; explicit here for plain C++ builds)
-void connectWiFi();
-void connectMQTT();
-void scanBLE();
-void sendPing();
-
 // ─── CONFIGURE THESE ───────────────────────────
 // WIFI_SSID, WIFI_PASS, and MQTT_BROKER now live in secrets.h so that
 // real credentials are never hard-coded here or committed to Git.
