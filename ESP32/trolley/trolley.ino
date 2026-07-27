@@ -45,10 +45,17 @@ int bestRSSI = -999;
 //───────────────────────────────────────────────
 void connectWiFi() {
 
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    // Already connected, nothing to do.
+    if (WiFi.status() == WL_CONNECTED)
+        return;
 
     Serial.print("Connecting to WiFi");
 
+    // Start a fresh WiFi connection attempt.
+    WiFi.disconnect(true);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+    // Wait until the ESP32 successfully reconnects.
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
@@ -68,6 +75,9 @@ void connectWiFi() {
 //───────────────────────────────────────────────
 void connectMQTT() {
 
+    // Keep retrying until the MQTT broker becomes available.
+    // This provides automatic MQTT reconnection if the broker
+    // is restarted or the connection is temporarily lost.
     while (!mqttClient.connected()) {
 
         Serial.print("Connecting to MQTT...");
@@ -83,6 +93,7 @@ void connectMQTT() {
             Serial.print("Failed rc=");
             Serial.println(mqttClient.state());
 
+            // Wait before retrying to avoid flooding the broker.
             delay(2000);
         }
     }
@@ -102,10 +113,6 @@ void scanBLE() {
     scan->setInterval(100);
     scan->setWindow(90);
 
-    // FIX: In NimBLE-Arduino 2.x, NimBLEScan::start() only returns bool
-    // (success/failure of starting the scan). The blocking call that
-    // returns NimBLEScanResults is now an overload of getResults(),
-    // and it takes the duration in MILLISECONDS, not seconds.
     NimBLEScanResults results = scan->getResults(5000, false);
 
     Serial.println("\n==============================");
@@ -116,9 +123,6 @@ void scanBLE() {
 
         const NimBLEAdvertisedDevice* device = results.getDevice(i);
 
-        // FIX: getName() returns std::string in NimBLE 2.x. Use it
-        // directly instead of routing through Arduino String, which
-        // avoids relying on .c_str() of a temporary.
         std::string name = device->getName();
         int rssi = device->getRSSI();
 
@@ -157,6 +161,12 @@ void scanBLE() {
 //───────────────────────────────────────────────
 void sendPing() {
 
+    // Publish only when the MQTT connection is active.
+    if (!mqttClient.connected()) {
+        Serial.println("MQTT not connected. Publish skipped.");
+        return;
+    }
+
     StaticJsonDocument<200> doc;
 
     doc["trolley_id"] = TROLLEY_ID;
@@ -184,13 +194,19 @@ void setup() {
 
     Serial.println("Trolley Tracker Starting...");
 
+    // Enable the ESP32's built-in WiFi auto-reconnect feature.
+    WiFi.setAutoReconnect(true);
+    WiFi.persistent(true);
+
+    // Establish the initial WiFi connection.
     connectWiFi();
 
-    // Initialize BLE ONLY ONCE
+    // Initialize BLE ONLY ONCE.
     NimBLEDevice::init("");
 
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
 
+    // Establish the initial MQTT connection.
     connectMQTT();
 }
 
@@ -199,16 +215,30 @@ void setup() {
 //───────────────────────────────────────────────
 void loop() {
 
+    // Automatically reconnect to WiFi if the connection is lost.
+    if (WiFi.status() != WL_CONNECTED) {
+
+        Serial.println("WiFi disconnected. Reconnecting...");
+
+        connectWiFi();
+    }
+
+    // Automatically reconnect to the MQTT broker if the
+    // MQTT session is lost (e.g., broker restart or network interruption).
     if (!mqttClient.connected()) {
+
+        Serial.println("MQTT disconnected. Reconnecting...");
 
         connectMQTT();
     }
 
+    // Maintain the MQTT connection and process keep-alive packets.
     mqttClient.loop();
 
     scanBLE();
 
     sendPing();
 
+    // Send an update every 30 seconds.
     delay(30000);
 }
