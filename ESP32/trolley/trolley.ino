@@ -1,4 +1,3 @@
-#include <Arduino.h>      // Needed explicitly outside the Arduino IDE (PlatformIO/CMake)
 #include <NimBLEDevice.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
