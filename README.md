@@ -145,7 +145,7 @@ library's own documentation.
 | **paho-mqtt** | The actual MQTT client library — lets `backend.py` connect to the Mosquitto broker, subscribe to the trolley topic, and react whenever a new ping arrives | `mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)`, `.on_connect`, `.on_message`, `.connect()`, `.subscribe()`, `.loop_forever()` |
 | **schedule** | A simple way to say "run this function every 60 seconds" without writing your own timer/loop logic from scratch | `schedule.every(60).seconds.do(check_offline)`, `schedule.run_pending()` |
 | **python-dotenv** | Reads the `.env` file and loads its key-value pairs into the environment, so `shared/config.py` can read them with `os.getenv()` — this is what lets you change settings without touching code | `load_dotenv()` |
-| **bcrypt** | Industry-standard password hashing — turns a plaintext password into a secure, salted hash before it's stored, and safely checks a login attempt against that hash later | `bcrypt.hashpw()`, `bcrypt.gensalt()`, `bcrypt.checkpw()` |
+| **bcrypt** | Password hashing — turns a plaintext password into a secure, salted hash before it's stored, and safely checks a login attempt against that hash later | `bcrypt.hashpw()`, `bcrypt.gensalt()`, `bcrypt.checkpw()` |
 | **sqlite3** *(built into Python — not in `requirements.txt`)* | The actual database engine every script talks to. No separate database server is needed; the whole database is just one file (`trolley.db`) | `sqlite3.connect()`, `.cursor()`, `.execute()`, `.fetchone()`, `.fetchall()`, `.commit()`, `.close()`, `.row_factory = sqlite3.Row` |
 
 ### Standard library modules used (also built into Python, not installed via pip)
