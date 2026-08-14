@@ -119,29 +119,17 @@ Streamlit Dashboard
 
 
 | Component | Technology |
-
 |-----------|------------|
-
 | Hardware | ESP32 |
-
 | Indoor Positioning | Bluetooth Low Energy (BLE) |
-
 | Communication | MQTT |
-
 | MQTT Broker | Eclipse Mosquitto |
-
 | Backend | Python |
-
 | Database | SQLite |
-
 | Dashboard | Streamlit |
-
 | Authentication | bcrypt |
-
 | JSON Processing | ArduinoJson |
-
 | ESP32 BLE Library | NimBLE-Arduino |
-
 
 
 ---
@@ -297,17 +285,11 @@ airport/trolleys
 
 
 | RSSI | Status |
-
 |------|--------|
-
 | RSSI > -99 | ACTIVE |
-
 | RSSI ≤ -99 | WEAK_SIGNAL |
-
 | RSSI = -999 | OUT_OF_RANGE |
-
 | No update for > 5 minutes | OFFLINE |
-
 
 
 ---
@@ -409,21 +391,13 @@ The application uses **SQLite**.
 
 
 | Column |
-
 |---------|
-
 | id |
-
 | trolley_id |
-
 | zone |
-
 | rssi |
-
 | status |
-
 | timestamp |
-
 
 
 Each MQTT message is stored as a **new database record**, preserving the complete history of trolley movements. The dashboard retrieves the latest record for each trolley when displaying current status.
